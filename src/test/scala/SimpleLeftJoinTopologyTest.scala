@@ -1,12 +1,12 @@
 package com.gjosquin.example.kstreams
 
-import org.apache.kafka.streams.{KeyValue, TopologyTestDriver}
 import org.apache.kafka.streams.scala.serialization.Serdes
+import org.apache.kafka.streams.test.TestRecord
+import org.apache.kafka.streams.{KeyValue, TopologyTestDriver}
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.time.Duration
-import java.util
+import java.time.Instant
 
 class SimpleLeftJoinTopologyTest extends AsyncFlatSpec with Matchers {
 
@@ -19,18 +19,18 @@ class SimpleLeftJoinTopologyTest extends AsyncFlatSpec with Matchers {
     val payments = driver.createInputTopic("payments", serde.serializer, serde.serializer)
     val debt = driver.createOutputTopic("debt", serde.deserializer, serde.deserializer)
 
-    bills.pipeInput("fred", "100")
-    bills.pipeInput("george", "20")
-    payments.pipeInput("fred", "95")
+    val t0: Instant = Instant.now()
+    bills.pipeInput(new TestRecord("fred", "100", t0))
+    bills.pipeInput(new TestRecord("george", "20", t0))
+    payments.pipeInput(new TestRecord("fred", "95", t0))
 
-    // When in doubt, sleep twice
-    driver.advanceWallClockTime(Duration.ofMillis(500))
-    Thread.sleep(500)
+    // Sending an extra record with an event time sufficient to close the previous window
+    payments.pipeInput(new TestRecord("percy", "0", t0.plusMillis(101)))
 
     val keyValues = debt.readKeyValuesToList()
     keyValues should contain theSameElementsAs Seq(
       new KeyValue[String, String]("fred", "5"),
-      new KeyValue[String, String]("george", "20") // Missing a produced record even after timeout
+      new KeyValue[String, String]("george", "20")
     )
   }
 }

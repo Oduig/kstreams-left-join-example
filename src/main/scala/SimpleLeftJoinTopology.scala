@@ -1,6 +1,5 @@
 package com.gjosquin.example.kstreams
 
-import org.apache.kafka.common.serialization.Serdes.StringSerde
 import org.apache.kafka.streams.Topology
 import org.apache.kafka.streams.kstream.{Consumed, JoinWindows}
 import org.apache.kafka.streams.scala.StreamsBuilder
